@@ -232,8 +232,8 @@ private extension MarkdownOutputNode.Metadata.Availability {
         self.init(
             platform: item.domain?.rawValue ?? "*",
             introduced: item.introducedVersion?.description,
-            deprecated: item.deprecatedVersion?.description,
-            unavailable: item.obsoletedVersion != nil
+            deprecated: item.isUnconditionallyDeprecated ? "*" : item.deprecatedVersion?.description,
+            unavailable: item.obsoletedVersion != nil || item.isUnconditionallyUnavailable
         )
     }
     

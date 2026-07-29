@@ -873,7 +873,7 @@ struct MarkdownOutputTests {
     }
     
     @Test
-    func symbolDeprecationRepresentedInMetadata() async throws {
+    func symbolAvailabilityRepresentedInMetadata() async throws {
         let catalog = catalog(files: [
             JSONFile(name: "MarkdownOutput.symbols.json", content: makeSymbolGraph(moduleName: "MarkdownOutput", symbols: [
                 makeSymbol(id: "MarkdownSymbol", kind: .struct, pathComponents: ["MarkdownSymbol"], docComment: "A basic symbol to test markdown output"),
@@ -912,6 +912,26 @@ struct MarkdownOutputTests {
                               isUnconditionallyDeprecated: false,
                               isUnconditionallyUnavailable: false,
                               willEventuallyBeDeprecated: false
+                             ),
+                        .init(domain: .init(rawValue: "iPadOS"),
+                              introducedVersion: nil,
+                              deprecatedVersion: nil,
+                              obsoletedVersion: nil,
+                              message: nil,
+                              renamed: nil,
+                              isUnconditionallyDeprecated: false,
+                              isUnconditionallyUnavailable: true,
+                              willEventuallyBeDeprecated: false
+                             ),
+                        .init(domain: .init(rawValue: "tvOS"),
+                              introducedVersion: nil,
+                              deprecatedVersion: nil,
+                              obsoletedVersion: nil,
+                              message: nil,
+                              renamed: nil,
+                              isUnconditionallyDeprecated: true,
+                              isUnconditionallyUnavailable: false,
+                              willEventuallyBeDeprecated: false
                              )
                     ])
             ]))
@@ -930,6 +950,12 @@ struct MarkdownOutputTests {
         
         let visionAvailability = try #require(node.metadata.availability(for: "visionOS"))
         #expect(visionAvailability.unavailable)
+        
+        let iPadAvailability = try #require(node.metadata.availability(for: "iPadOS"))
+        #expect(iPadAvailability.unavailable)
+        
+        let tvAvailability = try #require(node.metadata.availability(for: "tvOS"))
+        #expect(tvAvailability.deprecated != nil)
     }
     
     
