@@ -151,13 +151,20 @@ extension MarkdownOutputSemanticVisitor {
         
         markdownWalker.visit(Heading(level: 1, Text(symbol.title)))
         markdownWalker.visit(symbol.abstract)
-        // TODO: rdar://166606746 include alternate declarations
-        if let declarationFragments = symbol.declaration.first?.value.declarationFragments {
-            let declaration = declarationFragments
-                .map { $0.spelling }
-                .joined()
-            let code = CodeBlock(declaration)
+        
+        let sortedDeclarations = symbol.declaration.sortedByPlatformPriority()
+        
+        if sortedDeclarations.count == 1 {
+            let code = CodeBlock(sortedDeclarations[0].declaration.spelling())
             markdownWalker.visit(code)
+        } else {
+            for declaration in sortedDeclarations {
+                let platforms = declaration.platforms
+                    .compactMap { $0?.displayName }
+                    .joined(separator: ", ")
+                markdownWalker.visitParagraph(Paragraph(Text("\(platforms):")))
+                markdownWalker.visit(CodeBlock(declaration.declaration.spelling()))
+            }
         }
         
         if let parametersSection = symbol.parametersSection, parametersSection.parameters.isEmpty == false {

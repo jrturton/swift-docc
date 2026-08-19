@@ -24,10 +24,28 @@ extension [[PlatformName?]: SymbolGraph.Symbol.DeclarationFragments] {
     func renderDeclarationTokens() -> [DeclarationRenderSection.Token]? {
         mainRenderFragments()?.declarationFragments.renderDeclarationTokens()
     }
+    
+    /// The declarations sorted by platform priority, with the list of platforms per declaration also sorted by priority.
+    func sortedByPlatformPriority() -> [(platforms: Self.Key, declaration: Self.Value)] {
+        map { platforms, declaration in
+            let sortedPlatforms = platforms
+                .sorted { PlatformName.isInOrder($0?.rawValue, $1?.rawValue) }
+            return (sortedPlatforms, declaration)
+        }.sorted {
+            PlatformName.isInOrder($0.platforms.first??.rawValue, $1.platforms.first??.rawValue)
+        }
+    }
 }
 
 extension [SymbolGraph.Symbol.DeclarationFragments.Fragment] {
     func renderDeclarationTokens() -> [DeclarationRenderSection.Token] {
         map { .init(fragment: $0, identifier: nil) }
+    }
+}
+
+extension SymbolGraph.Symbol.DeclarationFragments {
+    /// The declaration fragments represented as text
+    func spelling() -> String {
+        declarationFragments.map { $0.spelling }.joined()
     }
 }

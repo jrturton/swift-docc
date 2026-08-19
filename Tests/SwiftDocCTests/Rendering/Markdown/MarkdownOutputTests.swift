@@ -54,6 +54,68 @@ struct MarkdownOutputTests {
     // MARK: Directive special processing
     
     @Test
+    func alternateDeclarationsAreIncluded() async throws {
+        
+        func declaration(name: String, type: String) -> SymbolGraph.Symbol.DeclarationFragments {
+            .init(declarationFragments: [
+                .init(kind: .keyword, spelling: "func", preciseIdentifier: nil),
+                .init(kind: .text, spelling: " ", preciseIdentifier: nil),
+                .init(kind: .identifier, spelling: name, preciseIdentifier: nil),
+                .init(kind: .text, spelling: "(_ value: \(type))", preciseIdentifier: nil),
+            ])
+        }
+        
+        func graph(platform: String, type: String) -> SymbolGraph {
+            makeSymbolGraph(
+                moduleName: "MarkdownOutput",
+                platform: .init(operatingSystem: .init(name: platform)),
+                symbols: [
+                    makeSymbol(id: "markdown-symbol-id", kind: .struct, pathComponents: ["MarkdownSymbol"]),
+                    makeSymbol(id: "markdown-symbol-variants-id", kind: .func, pathComponents: ["MarkdownSymbol", "varies(_:)"], otherMixins: [declaration(name: "varies", type: type)]),
+                    makeSymbol(id: "markdown-symbol-no-variants-id", kind: .func, pathComponents: ["MarkdownSymbol", "notVaries(_:)"], otherMixins: [declaration(name: "notVaries", type: "Int")]),
+                ],
+                relationships: [
+                    SymbolGraph.Relationship(source: "markdown-symbol-func-id", target: "markdown-symbol-id", kind: .memberOf, targetFallback: nil),
+                    SymbolGraph.Relationship(source: "markdown-symbol-no-variants-id", target: "markdown-symbol-id", kind: .memberOf, targetFallback: nil)
+                ]
+            )
+        }
+        
+        let catalog = catalog(files: [
+            JSONFile(name: "visionos-MarkdownOutput.symbols.json", content: graph(platform: "visionos", type: "UIColor")),
+            JSONFile(name: "macos-MarkdownOutput.symbols.json", content: graph(platform: "macos", type: "NSColor")),
+            JSONFile(name: "ios-MarkdownOutput.symbols.json", content: graph(platform: "ios", type: "UIColor")),
+        ])
+        
+        let (node, _) = try await markdownOutput(catalog: catalog, path: "MarkdownSymbol/varies(_:)")
+        
+        let expectedDeclaration = """
+        iOS, visionOS:
+        
+        ```
+        func varies(_ value: UIColor)
+        ```
+        
+        macOS:
+        
+        ```
+        func varies(_ value: NSColor)
+        ```
+        """
+        #expect(node.markdown.contains(expectedDeclaration))
+        
+        let (nonVariantNode, _) = try await markdownOutput(catalog: catalog, path: "MarkdownSymbol/notVaries(_:)")
+        let expectedNonVariant = """
+        # notVaries(_:)
+        
+        ```
+        func notVaries(_ value: Int)
+        ```
+        """
+        #expect(nonVariantNode.markdown.contains(expectedNonVariant))
+    }
+    
+    @Test
     func rowsAndColumnsAreRenderedAsParagraphs() async throws {
         
         let catalog = catalog(files: [
