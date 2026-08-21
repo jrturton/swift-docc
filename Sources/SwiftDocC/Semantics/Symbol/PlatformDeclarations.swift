@@ -29,10 +29,10 @@ extension [[PlatformName?]: SymbolGraph.Symbol.DeclarationFragments] {
     func sortedByPlatformPriority() -> [(platforms: Self.Key, declaration: Self.Value)] {
         map { platforms, declaration in
             let sortedPlatforms = platforms
-                .sorted { PlatformName.isInOrder($0?.rawValue, $1?.rawValue) }
+                .sorted { PlatformName.areInIncreasingOrder($0?.rawValue, $1?.rawValue) }
             return (sortedPlatforms, declaration)
         }.sorted {
-            PlatformName.isInOrder($0.platforms.first??.rawValue, $1.platforms.first??.rawValue)
+            PlatformName.areInIncreasingOrder($0.platforms.first??.rawValue, $1.platforms.first??.rawValue)
         }
     }
 }
