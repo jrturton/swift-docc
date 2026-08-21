@@ -75,7 +75,7 @@ struct MarkdownOutputTests {
                     makeSymbol(id: "markdown-symbol-no-variants-id", kind: .func, pathComponents: ["MarkdownSymbol", "notVaries(_:)"], otherMixins: [declaration(name: "notVaries", type: "Int")]),
                 ],
                 relationships: [
-                    SymbolGraph.Relationship(source: "markdown-symbol-func-id", target: "markdown-symbol-id", kind: .memberOf, targetFallback: nil),
+                    SymbolGraph.Relationship(source: "markdown-symbol-variants-id", target: "markdown-symbol-id", kind: .memberOf, targetFallback: nil),
                     SymbolGraph.Relationship(source: "markdown-symbol-no-variants-id", target: "markdown-symbol-id", kind: .memberOf, targetFallback: nil)
                 ]
             )
