@@ -250,7 +250,9 @@ extension MarkdownOutputSemanticVisitor {
         markdownWalker.visit(Heading(level: 1, Text(symbol.title)))
         markdownWalker.visit(symbol.abstract)
         
-        let sortedDeclarations = symbol.declaration.sortedByPlatformPriority()
+        let sortedDeclarations = symbol.declaration
+            .expandingPlatforms()
+            .sortedByPlatformPriority()
         
         if sortedDeclarations.count == 1 {
             let code = CodeBlock(sortedDeclarations[0].declaration.spelling())

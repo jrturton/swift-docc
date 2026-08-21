@@ -90,7 +90,7 @@ struct MarkdownOutputTests {
         let (node, _) = try await markdownOutput(catalog: catalog, path: "MarkdownSymbol/varies(_:)")
         
         let expectedDeclaration = """
-        iOS, visionOS:
+        iOS, iPadOS, Mac Catalyst, visionOS:
         
         ```
         func varies(_ value: UIColor)

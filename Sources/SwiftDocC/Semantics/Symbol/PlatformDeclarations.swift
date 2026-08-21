@@ -25,6 +25,18 @@ extension [[PlatformName?]: SymbolGraph.Symbol.DeclarationFragments] {
         mainRenderFragments()?.declarationFragments.renderDeclarationTokens()
     }
     
+    /// Adds any fallback platforms to the platform list and sorts them by priority.
+    func expandingPlatforms() -> Self {
+        let expandedKeyValues = map { platforms, declaration in
+            let expanded = PlatformName.expandPlatformsWithFallbacks(platforms)
+                .sorted {
+                    PlatformName.areInIncreasingOrder($0?.rawValue, $1?.rawValue)
+                }
+            return (expanded, declaration)
+        }
+        return Self(uniqueKeysWithValues: expandedKeyValues)
+    }
+    
     /// The declarations sorted by platform priority, with the list of platforms per declaration also sorted by priority.
     func sortedByPlatformPriority() -> [(platforms: Self.Key, declaration: Self.Value)] {
         map { platforms, declaration in
