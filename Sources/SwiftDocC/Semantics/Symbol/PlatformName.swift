@@ -164,9 +164,6 @@ public struct PlatformName: Codable, Hashable, Comparable, Sendable {
         case (let lhs?, let rhs?):  areInIncreasingOrder(lhs, rhs)
         }
     }
-}
-
-package extension PlatformName {
     
     /// Returns the given platforms with any missing fallback platforms added.
     ///
@@ -178,7 +175,7 @@ package extension PlatformName {
     ///
     /// - Parameter platforms: The original platforms array.
     /// - Returns: The platforms array with fallback platforms added where applicable.
-    static func expandPlatformsWithFallbacks(_ platforms: [PlatformName?]) -> [PlatformName?] {
+    package static func addingFallbacks(_ platforms: [PlatformName?]) -> [PlatformName?] {
         guard !platforms.isEmpty else { return platforms }
 
         // Add fallback platforms if the platform is missing but the fallback is present

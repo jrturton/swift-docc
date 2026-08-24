@@ -199,7 +199,7 @@ struct DeclarationsSectionTranslator: RenderSectionTranslator {
                 .declarationFragments.flatMap(preProcessFragment(_:))
             for pair in declaration {
                 let (platforms, declaration) = pair
-                let expandedPlatforms = PlatformName.expandPlatformsWithFallbacks(platforms)
+                let expandedPlatforms = PlatformName.addingFallbacks(platforms)
                 let platformNames = expandedPlatforms.sorted { PlatformName.areInIncreasingOrder($0?.rawValue, $1?.rawValue) }
 
                 let renderedTokens: [DeclarationRenderSection.Token]
@@ -248,7 +248,7 @@ struct DeclarationsSectionTranslator: RenderSectionTranslator {
             if let alternateDeclarations = symbol.alternateDeclarationVariants[trait] {
                 for pair in alternateDeclarations {
                     let (platforms, decls) = pair
-                    let expandedPlatforms = PlatformName.expandPlatformsWithFallbacks(platforms)
+                    let expandedPlatforms = PlatformName.addingFallbacks(platforms)
                     let platformNames = expandedPlatforms.sorted { PlatformName.areInIncreasingOrder($0?.rawValue, $1?.rawValue) }
                     for alternateDeclaration in decls {
                         let renderedTokens = alternateDeclaration.declarationFragments.map(translateFragment)
