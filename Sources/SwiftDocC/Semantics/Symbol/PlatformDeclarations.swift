@@ -26,19 +26,18 @@ extension [[PlatformName?]: SymbolGraph.Symbol.DeclarationFragments] {
     }
     
     /// Adds any fallback platforms to the platform list and sorts them by priority.
-    func expandingPlatforms() -> Self {
-        let expandedKeyValues = map { platforms, declaration in
+    /// - Returns: An array of platforms / declaration tuples.
+    func expandingPlatforms() -> [(platforms: [PlatformName?], declaration: SymbolGraph.Symbol.DeclarationFragments)] {
+        map { platforms, declaration in
             let expanded = PlatformName.addingFallbacks(platforms)
-                .sorted {
-                    PlatformName.areInIncreasingOrder($0?.rawValue, $1?.rawValue)
-                }
             return (expanded, declaration)
         }
-        return Self(uniqueKeysWithValues: expandedKeyValues)
     }
-    
+}
+
+extension [(platforms: [PlatformName?], declaration: SymbolGraph.Symbol.DeclarationFragments)] {
     /// The declarations sorted by platform priority, with the list of platforms per declaration also sorted by priority.
-    func sortedByPlatformPriority() -> [(platforms: Self.Key, declaration: Self.Value)] {
+    func sortedByPlatformPriority() -> Self {
         map { platforms, declaration in
             let sortedPlatforms = platforms
                 .sorted { PlatformName.areInIncreasingOrder($0?.rawValue, $1?.rawValue) }
@@ -47,6 +46,7 @@ extension [[PlatformName?]: SymbolGraph.Symbol.DeclarationFragments] {
             PlatformName.areInIncreasingOrder($0.platforms.first??.rawValue, $1.platforms.first??.rawValue)
         }
     }
+    
 }
 
 extension [SymbolGraph.Symbol.DeclarationFragments.Fragment] {
