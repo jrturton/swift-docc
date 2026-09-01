@@ -404,6 +404,56 @@ struct MarkdownOutputTests {
     }
     
     @Test
+    func curatedSymbolUsesSubheadingAsLinkTitle() async throws {
+        let catalog = catalog(files: [
+            JSONFile(
+                name: "MarkdownOutput.symbols.json",
+                content:
+                    makeSymbolGraph(
+                        moduleName: "MarkdownOutput",
+                        symbols: [
+                            makeSymbol(id: "markdown-symbol-id", kind: .struct, pathComponents: ["MarkdownSymbol"], docComment: "A basic symbol to test markdown output"),
+                            makeSymbol(
+                                id: "markdown-symbol-var-id",
+                                kind: .property,
+                                pathComponents: ["MarkdownSymbol", "property"],
+                                docComment: "A property of the symbol",
+                                declaration: [
+                                    .init(kind: .attribute, spelling: "@objc", preciseIdentifier: nil),
+                                    .init(kind: .text, spelling: " ", preciseIdentifier: nil),
+                                    .init(kind: .keyword, spelling: "var", preciseIdentifier: nil),
+                                    .init(kind: .text, spelling: " ", preciseIdentifier: nil),
+                                    .init(kind: .identifier, spelling: "property", preciseIdentifier: nil),
+                                    .init(kind: .text, spelling: ": ", preciseIdentifier: nil),
+                                    .init(kind: .typeIdentifier, spelling: "Int", preciseIdentifier: "s:Si"),
+                                    .init(kind: .text, spelling: " { ", preciseIdentifier: nil),
+                                    .init(kind: .keyword, spelling: "get", preciseIdentifier: nil),
+                                    .init(kind: .text, spelling: " ", preciseIdentifier: nil),
+                                    .init(kind: .keyword, spelling: "set", preciseIdentifier: nil),
+                                    .init(kind: .text, spelling: " }", preciseIdentifier: nil),
+                                ],
+                                subHeading: [
+                                    .init(kind: .keyword, spelling: "var", preciseIdentifier: nil),
+                                    .init(kind: .text, spelling: " ", preciseIdentifier: nil),
+                                    .init(kind: .identifier, spelling: "property", preciseIdentifier: nil),
+                                    .init(kind: .text, spelling: ": ", preciseIdentifier: nil),
+                                    .init(kind: .typeIdentifier, spelling: "Int", preciseIdentifier: "s:Si"),
+                                ]
+                            )
+                        ],
+                        relationships: [
+                            .init(source: "markdown-symbol-var-id", target: "markdown-symbol-id", kind: .memberOf, targetFallback: nil),
+                        ]
+                    )
+            )
+        ])
+        
+        let (node, _) = try await markdownOutput(catalog: catalog, path: "MarkdownSymbol")
+        #expect(node.markdown.contains("[`var property: Int`](/documentation/MarkdownOutput/MarkdownSymbol/property"))
+        #expect(node.markdown.contains("@objc var property: Int { get set }") == false)
+    }
+    
+    @Test
     func linkTitlesAreRetained() async throws {
         let catalog = catalog(files: [
             TextFile(name: "RootDocument.md", utf8Content: """
@@ -1801,16 +1851,22 @@ struct MarkdownOutputTests {
         
         
         let (_, manifest) = try await markdownOutput(catalog: catalog, path: "LocalSubclass")
-        let related = manifest.relationships.filter { $0.relationshipType == .relatedSymbol }
-        #expect(related.contains(where: {
-            $0.targetIdentifier == "/documentation/MarkdownOutput/LocalSuperclass" && $0.subtype == .inheritsFrom
-        }))
+        let inheritsFrom = MarkdownOutputManifest.Relationship(
+            sourceIdentifier: "/documentation/MarkdownOutput/LocalSubclass",
+            relationshipType: .relatedSymbol,
+            subtype: .inheritsFrom,
+            targetIdentifier: "/documentation/MarkdownOutput/LocalSuperclass"
+        )
+        #expect(manifest.relationships.contains(inheritsFrom))
         
         let (_, parentManifest) = try await markdownOutput(catalog: catalog, path: "LocalSuperclass")
-        let parentRelated = parentManifest.relationships.filter { $0.relationshipType == .relatedSymbol }
-        #expect(parentRelated.contains(where: {
-            $0.targetIdentifier == "/documentation/MarkdownOutput/LocalSubclass" && $0.subtype == .inheritedBy
-        }))
+        let inheritedBy = MarkdownOutputManifest.Relationship(
+            sourceIdentifier: "/documentation/MarkdownOutput/LocalSuperclass",
+            relationshipType: .relatedSymbol,
+            subtype: .inheritedBy,
+            targetIdentifier: "/documentation/MarkdownOutput/LocalSubclass"
+        )
+        #expect(parentManifest.relationships.contains(inheritedBy))
     }
         
     @Test
@@ -1833,23 +1889,32 @@ struct MarkdownOutputTests {
         ])
         
         let (_, manifest) = try await markdownOutput(catalog: catalog, path: "LocalConformer")
-        let related = manifest.relationships.filter { $0.relationshipType == .relatedSymbol }
-        #expect(related.contains(where: {
-            $0.targetIdentifier == "/documentation/MarkdownOutput/LocalProtocol" && $0.subtype == .conformsTo
-        }))
+        let conformsTo = MarkdownOutputManifest.Relationship(
+            sourceIdentifier: "/documentation/MarkdownOutput/LocalConformer",
+            relationshipType: .relatedSymbol,
+            subtype: .conformsTo,
+            targetIdentifier: "/documentation/MarkdownOutput/LocalProtocol"
+        )
+        #expect(manifest.relationships.contains(conformsTo))
         
         let (_, protocolManifest) = try await markdownOutput(catalog: catalog, path: "LocalProtocol")
-        let protocolRelated = protocolManifest.relationships.filter { $0.relationshipType == .relatedSymbol }
-        #expect(protocolRelated.contains(where: {
-            $0.targetIdentifier == "/documentation/MarkdownOutput/LocalConformer" && $0.subtype == .conformingTypes
-        }))
+        let conformingTypes = MarkdownOutputManifest.Relationship(
+            sourceIdentifier: "/documentation/MarkdownOutput/LocalProtocol",
+            relationshipType: .relatedSymbol,
+            subtype: .conformingTypes,
+            targetIdentifier: "/documentation/MarkdownOutput/LocalConformer"
+        )
+        #expect(protocolManifest.relationships.contains(conformingTypes))
         
         let (_, externalManifest) = try await markdownOutput(catalog: catalog, path: "ExternalConformer")
-        let externalRelated = externalManifest.relationships.filter { $0.relationshipType == .relatedSymbol }
         // Unresolved symbol should use the fallback identifier
-        #expect(externalRelated.contains(where: {
-            $0.targetIdentifier == "Swift.Hashable" && $0.subtype == .conformsTo
-        }))
+        let externalConformsTo = MarkdownOutputManifest.Relationship(
+            sourceIdentifier: "/documentation/MarkdownOutput/ExternalConformer",
+            relationshipType: .relatedSymbol,
+            subtype: .conformsTo,
+            targetIdentifier: "Swift.Hashable"
+        )
+        #expect(externalManifest.relationships.contains(externalConformsTo))
     }
 }
 
