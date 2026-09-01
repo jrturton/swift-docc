@@ -56,23 +56,61 @@ struct MarkdownOutputTests {
     @Test
     func alternateDeclarationsAreIncluded() async throws {
         
-        func declaration(name: String, type: String) -> SymbolGraph.Symbol.DeclarationFragments {
+        func platformDeclaration(name: String, type: String) -> SymbolGraph.Symbol.DeclarationFragments {
             .init(declarationFragments: [
                 .init(kind: .keyword, spelling: "func", preciseIdentifier: nil),
                 .init(kind: .text, spelling: " ", preciseIdentifier: nil),
                 .init(kind: .identifier, spelling: name, preciseIdentifier: nil),
-                .init(kind: .text, spelling: "(_ value: \(type))", preciseIdentifier: nil),
+                .init(kind: .text, spelling: "(", preciseIdentifier: nil),
+                .init(kind: .externalParameter, spelling: "value", preciseIdentifier: nil),
+                .init(kind: .text, spelling: ": ", preciseIdentifier: nil),
+                .init(kind: .typeIdentifier, spelling: type, preciseIdentifier: nil),
+                .init(kind: .text, spelling: ")", preciseIdentifier: nil),
             ])
         }
         
+        func functionDeclaration(alternate: Bool) -> SymbolGraph.Symbol.DeclarationFragments {
+            var fragments: [SymbolGraph.Symbol.DeclarationFragments.Fragment] = [
+                .init(kind: .keyword, spelling: "func", preciseIdentifier: nil),
+                .init(kind: .text, spelling: " ", preciseIdentifier: nil),
+                .init(kind: .identifier, spelling: "doSomething", preciseIdentifier: nil),
+                .init(kind: .text, spelling: "(", preciseIdentifier: nil),
+            ]
+            
+            if alternate {
+                fragments.append(contentsOf: [
+                    .init(kind: .text, spelling: ") ", preciseIdentifier: nil),
+                    .init(kind: .keyword, spelling: "async", preciseIdentifier: nil),
+                ])
+            } else {
+                fragments.append(contentsOf: [
+                    .init(kind: .externalParameter, spelling: "completionHandler", preciseIdentifier: nil),
+                    .init(kind: .text, spelling: " ", preciseIdentifier: nil),
+                    .init(kind: .internalParameter, spelling: "handler", preciseIdentifier: nil),
+                    .init(kind: .text, spelling: ": ", preciseIdentifier: nil),
+                    .init(kind: .attribute, spelling: "@escaping ", preciseIdentifier: nil),
+                    .init(kind: .attribute, spelling: "@Sendable", preciseIdentifier: nil),
+                    .init(kind: .text, spelling: " () -> ", preciseIdentifier: nil),
+                    .init(kind: .typeIdentifier, spelling: "Void", preciseIdentifier: nil),
+                    .init(kind: .text, spelling: ")", preciseIdentifier: nil),
+                ])
+            }
+            
+            return .init(declarationFragments: fragments)
+        }
+                        
         func graph(platform: String, type: String) -> SymbolGraph {
             makeSymbolGraph(
                 moduleName: "MarkdownOutput",
                 platform: .init(operatingSystem: .init(name: platform)),
                 symbols: [
                     makeSymbol(id: "markdown-symbol-id", kind: .struct, pathComponents: ["MarkdownSymbol"]),
-                    makeSymbol(id: "markdown-symbol-variants-id", kind: .func, pathComponents: ["MarkdownSymbol", "varies(_:)"], otherMixins: [declaration(name: "varies", type: type)]),
-                    makeSymbol(id: "markdown-symbol-no-variants-id", kind: .func, pathComponents: ["MarkdownSymbol", "notVaries(_:)"], otherMixins: [declaration(name: "notVaries", type: "Int")]),
+                    makeSymbol(id: "markdown-symbol-variants-id", kind: .func, pathComponents: ["MarkdownSymbol", "varies(_:)"], otherMixins: [platformDeclaration(name: "varies", type: type)]),
+                    makeSymbol(id: "markdown-symbol-no-variants-id", kind: .func, pathComponents: ["MarkdownSymbol", "notVaries(_:)"], otherMixins: [platformDeclaration(name: "notVaries", type: "Int")]),
+                    makeSymbol(id: "markdown-symbol-alternates-id", kind: .func, pathComponents: ["MarkdownSymbol", "doSomething(completionHandler:)"], otherMixins: [
+                        functionDeclaration(alternate: false),
+                        SymbolGraph.Symbol.AlternateSymbols(alternateSymbols: [.init(declarationFragments: functionDeclaration(alternate: true))])
+                    ])
                 ],
                 relationships: [
                     SymbolGraph.Relationship(source: "markdown-symbol-variants-id", target: "markdown-symbol-id", kind: .memberOf, targetFallback: nil),
@@ -93,13 +131,13 @@ struct MarkdownOutputTests {
         iOS, iPadOS, Mac Catalyst, visionOS:
         
         ```
-        func varies(_ value: UIColor)
+        func varies(value: UIColor)
         ```
         
         macOS:
         
         ```
-        func varies(_ value: NSColor)
+        func varies(value: NSColor)
         ```
         """
         #expect(node.markdown.contains(expectedDeclaration))
@@ -109,10 +147,24 @@ struct MarkdownOutputTests {
         # notVaries(_:)
         
         ```
-        func notVaries(_ value: Int)
+        func notVaries(value: Int)
         ```
         """
         #expect(nonVariantNode.markdown.contains(expectedNonVariant))
+        
+        let (alternateNode, _) = try await markdownOutput(catalog: catalog, path: "MarkdownSymbol/doSomething(completionHandler:)")
+        print(alternateNode.markdown)
+        
+        let expectedVariantDeclarations = """
+        ```
+        func doSomething(completionHandler handler: @escaping @Sendable () -> Void)
+        ```
+
+        ```
+        func doSomething() async
+        ```
+        """
+        #expect(alternateNode.markdown.contains(expectedVariantDeclarations))
     }
     
     @Test

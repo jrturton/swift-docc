@@ -24,29 +24,24 @@ extension [[PlatformName?]: SymbolGraph.Symbol.DeclarationFragments] {
     func renderDeclarationTokens() -> [DeclarationRenderSection.Token]? {
         mainRenderFragments()?.declarationFragments.renderDeclarationTokens()
     }
-    
-    /// Adds any fallback platforms to the platform list and sorts them by priority.
-    /// - Returns: An array of platforms / declaration tuples.
-    func expandingPlatforms() -> [(platforms: [PlatformName?], declaration: SymbolGraph.Symbol.DeclarationFragments)] {
-        map { platforms, declaration in
-            let expanded = PlatformName.addingFallbacks(platforms)
-            return (expanded, declaration)
-        }
-    }
 }
 
-extension [(platforms: [PlatformName?], declaration: SymbolGraph.Symbol.DeclarationFragments)] {
-    /// The declarations sorted by platform priority, with the list of platforms per declaration also sorted by priority.
-    func sortedByPlatformPriority() -> Self {
-        map { platforms, declaration in
-            let sortedPlatforms = platforms
+extension Dictionary where Key == [PlatformName?] {
+    /// Adds any fallback platforms to the platforms in the key and sorts them by priority.
+    /// - Returns: A sorted array of platforms / `Value` tuples.
+    func expandingPlatformsAndSorting() -> [(Key, Value)] {
+        var keys: Set<[PlatformName?]> = []
+        let expandedArray: [(Key, Value)] = compactMap { platforms, value in
+            let expanded = PlatformName.addingFallbacks(platforms)
                 .sorted { PlatformName.areInIncreasingOrder($0?.rawValue, $1?.rawValue) }
-            return (sortedPlatforms, declaration)
-        }.sorted {
-            PlatformName.areInIncreasingOrder($0.platforms.first??.rawValue, $1.platforms.first??.rawValue)
+            if keys.contains(expanded) { return nil }
+            keys.insert(expanded)
+            return (expanded, value)
+        }
+        return expandedArray.sorted {
+            PlatformName.areInIncreasingOrder($0.0.first??.rawValue, $1.0.first??.rawValue)
         }
     }
-    
 }
 
 extension [SymbolGraph.Symbol.DeclarationFragments.Fragment] {
