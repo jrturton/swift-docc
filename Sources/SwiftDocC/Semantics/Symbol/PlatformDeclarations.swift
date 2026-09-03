@@ -30,17 +30,12 @@ extension Dictionary where Key == [PlatformName?] {
     /// Adds any fallback platforms to the platforms in the key and sorts them by priority.
     /// - Returns: A sorted array of platforms / `Value` tuples.
     func expandingPlatformsAndSorting() -> [(Key, Value)] {
-        var keys: Set<[PlatformName?]> = []
-        let expandedArray: [(Key, Value)] = compactMap { platforms, value in
-            let expanded = PlatformName.addingFallbacks(platforms)
-                .sorted { PlatformName.areInIncreasingOrder($0?.rawValue, $1?.rawValue) }
-            if keys.contains(expanded) { return nil }
-            keys.insert(expanded)
-            return (expanded, value)
+        map { platforms, value in
+            (PlatformName.addingFallbacks(platforms)
+                .sorted { PlatformName.areInIncreasingOrder($0?.rawValue, $1?.rawValue) },
+            value)
         }
-        return expandedArray.sorted {
-            PlatformName.areInIncreasingOrder($0.0.first??.rawValue, $1.0.first??.rawValue)
-        }
+        .sorted { PlatformName.areInIncreasingOrder($0.0.first??.rawValue, $1.0.first??.rawValue) }
     }
 }
 
