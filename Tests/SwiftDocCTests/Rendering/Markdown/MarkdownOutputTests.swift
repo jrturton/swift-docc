@@ -153,7 +153,6 @@ struct MarkdownOutputTests {
         #expect(nonVariantNode.markdown.contains(expectedNonVariant))
         
         let (alternateNode, _) = try await markdownOutput(catalog: catalog, path: "MarkdownSymbol/doSomething(completionHandler:)")
-        print(alternateNode.markdown)
         
         let expectedVariantDeclarations = """
         ```
